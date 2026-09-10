@@ -1,0 +1,1 @@
+[{"values":["main"],"name":"environnement"},{"values":["http://localhost:3000"],"name":"base_url"},{"values":["http://localhost:3000/api"],"name":"api_url"},{"values":["app de démonstration (Nimbus)"],"name":"cible"},{"values":["v20.20.2"],"name":"node"},{"values":["true"],"name":"ci"}]
