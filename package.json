@@ -1,0 +1,56 @@
+{
+  "name": "qa-starter-kit-saas",
+  "version": "1.0.0",
+  "description": "Socle QA SaaS B2B — Playwright + TypeScript + POM + Allure + GitHub Actions",
+  "main": "index.js",
+  "scripts": {
+    "app": "node demo-app/server.mjs",
+    "test": "playwright test",
+    "test:e2e": "playwright test --project=e2e-chromium",
+    "test:api": "playwright test --project=api",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:critical": "playwright test --grep @critical",
+    "test:revenue": "playwright test --grep @revenue",
+    "test:security": "playwright test --grep @security",
+    "test:headed": "playwright test --project=e2e-chromium --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:crossbrowser": "playwright test --project=e2e-chromium --project=e2e-firefox --project=e2e-webkit",
+    "report": "playwright show-report",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "allure:history": "node scripts/preserve-allure-history.mjs",
+    "allure:full": "npm run allure:history && npm run allure:generate && npm run allure:open",
+    "typecheck": "tsc --noEmit",
+    "install:browsers": "playwright install --with-deps",
+    "clean": "rm -rf allure-results allure-report playwright-report test-results .auth"
+  },
+  "keywords": [
+    "qa",
+    "testing",
+    "playwright",
+    "typescript",
+    "allure",
+    "saas",
+    "b2b",
+    "sdet"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@faker-js/faker": "^10.6.0",
+    "@playwright/test": "^1.63.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.2",
+    "allure-commandline": "^2.43.0",
+    "allure-js-commons": "^3.12.1",
+    "allure-playwright": "^3.12.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "typescript": "^5.9.3"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}

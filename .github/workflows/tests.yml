@@ -1,0 +1,180 @@
+name: QA — Nimbus (SaaS B2B)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      grep:
+        description: 'Filtrer par tag (@smoke, @critical, @revenue, @security, @api)'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  quality-gate:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run typecheck
+
+  test:
+    name: Tests (shard ${{ matrix.shard }}/4)
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Installer les navigateurs
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Installer les dépendances système
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # L'application de démonstration est démarrée par Playwright lui-même
+      # (option webServer) : aucune dépendance réseau externe, CI déterministe.
+      - name: Exécuter les tests
+        run: |
+          npx playwright test \
+            --project=api \
+            --project=e2e-chromium \
+            --shard=${{ matrix.shard }}/4 \
+            ${{ github.event.inputs.grep && format('--grep {0}', github.event.inputs.grep) || '' }}
+        env:
+          CI: true
+          TEST_ENV: ${{ github.ref_name }}
+
+      - name: Archiver les résultats Allure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-${{ matrix.shard }}
+          path: allure-results/
+          retention-days: 7
+
+      - name: Archiver les traces d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traces-${{ matrix.shard }}
+          path: test-results/
+          retention-days: 7
+
+  report:
+    name: Rapport Allure
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Fusionner les résultats des shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-*
+          merge-multiple: true
+          path: allure-results
+
+      # Historisation : la branche gh-pages porte les tendances des runs passés.
+      - name: Récupérer l'historique publié
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Réinjecter l'historique
+        run: npm run allure:history
+
+      - name: Générer le rapport
+        run: npx allure generate allure-results --clean -o allure-report
+
+      - name: Publier sur GitHub Pages
+        if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: allure-report
+          publish_branch: gh-pages
+          keep_files: false
+
+      - name: Archiver le rapport
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report/
+          retention-days: 30
+
+      - name: Commenter la PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const conclusion = '${{ needs.test.result }}';
+            const icon = conclusion === 'success' ? '✅' : '❌';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                `${icon} **Tests automatisés : ${conclusion}**`,
+                '',
+                `Rapport Allure (traces, captures, tendances) : [artifact du run](${runUrl})`,
+                '',
+                '_Les échecs sont catégorisés : bug produit, test à corriger, ou environnement indisponible._'
+              ].join('\n')
+            });
