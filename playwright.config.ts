@@ -49,13 +49,6 @@ export default defineConfig({
           node: process.version,
           ci: String(env.isCI),
         },
-        links: {
-          issue: {
-            urlTemplate: (v: string) => `https://votre-tracker/browse/${v}`,
-            nameTemplate: (v: string) => `Ticket ${v}`,
-          },
-          tms: { urlTemplate: (v: string) => `https://votre-tms/case/${v}` },
-        },
       },
     ],
   ],
