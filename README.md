@@ -5,6 +5,7 @@ Socle de test automatisé pour produits SaaS B2B : **Playwright + TypeScript**, 
 Le kit couvre les parcours qui touchent au revenu : inscription, activation, contrôle d'accès par rôle, limites de sièges et changement d'abonnement.
 
 [![Tests](https://github.com/BilelKNH/https://github.com/BilelKNH/QA-full-starter-kit/actions/workflows/tests.yml/badge.svg)](https://github.com/BilelKNH/https://github.com/BilelKNH/QA-full-starter-kit/actions/workflows/tests.yml)
+📊 [Rapport Allure du dernier run](https://bilelknh.github.io/QA-full-starter-kit/)
 
 ---
 
