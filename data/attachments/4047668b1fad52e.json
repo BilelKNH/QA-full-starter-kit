@@ -1,0 +1,1 @@
+{"data":[{"id":"usr_0b4307fd-ef1","name":"Nadia Owner","email":"owner@acme.test","role":"owner"},{"id":"usr_90b972e3-23f","name":"Marc Admin","email":"admin@acme.test","role":"admin"},{"id":"usr_e18f3b40-f4f","name":"Lina Member","email":"member@acme.test","role":"member"}],"total":3,"page":1,"limit":10}
